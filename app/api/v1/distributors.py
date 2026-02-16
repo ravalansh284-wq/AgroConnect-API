@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
-from app.models.models import Product
+from app.models.product import Product
 from app.schemas.product import ProductResponse
 from app.core.redis import get_cache, set_cache
 

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import  Session
 from app.core.database import get_db
-from app.models.models import Order, Product, User
+from app.models.order import Order
+from app.models.product import Product
+from app.models.user import User
 from app.schemas.order import OrderCreate, OrderResponse
 from app.services.email import send_order_confirmation
 
