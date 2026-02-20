@@ -1,44 +1,79 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy.orm import  Session
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.api.deps import get_current_user
 from app.models.order import Order
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.order import OrderCreate, OrderResponse
-from app.services.email import send_order_confirmation
+from typing import List
 
 router = APIRouter()
 
-@router.post("order",response_model=OrderResponse)
-def create_order(order: OrderCreate,background_tasks: BackgroundTasks,db: Session = Depends(get_db)):
-
-    product = db.query(Product).filter(Product.id == order.product_id).with_for_update().first()
-
+@router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+def place_order(
+    order_data: OrderCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    
+    if current_user.role != "distributor":
+        raise HTTPException(status_code=403, detail="Only distributors can buy products!")
+    
+    product = db.query(Product).filter(Product.id == order_data.product_id).first()
     if not product:
-        raise HTTPException(status_code=404,detail="Product not found")
-    
-    if product.quantity < order.quantity:
-        raise HTTPException(status_code=400, detail="Not enough stock available")
-    
-    total_cost = product.price * order.quantity
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    if product.quantity < order_data.quantity:
+        raise HTTPException(status_code=400, detail=f"Not enough stock! Only {product.quantity} available.")
+
+    total_bill = product.price * order_data.quantity
 
     new_order = Order(
-        product_id=order.product_id,
-        distributor_id=1,
-        quantity=order.quantity,
-        total_price=total_cost,
-        status="completed"
-    ) 
+        quantity=order_data.quantity,
+        total_price=total_bill,
+        status="pending",
+        distributor_id=current_user.id,
+        product_id=product.id
+    )
 
-    try:
-        product.quantity -= order.quantity
-        db.add(new_order)
-        db.commit()
-        db.refresh(new_order)
-        background_tasks.add_task(send_order_confirmation, "distributor@example.com", new_order.id)
+    product.quantity -= order_data.quantity
 
-        return new_order
+    db.add(new_order)
+    db.commit()
+    db.refresh(new_order)
+
+    return OrderResponse(
+        id=new_order.id,
+        product_name=product.name,
+        quantity=new_order.quantity,
+        total_price=new_order.total_price,
+        status=new_order.status
+    )
+
+@router.get("/", response_model=List[OrderResponse])
+def get_my_orders(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role == "distributor":
+        orders = db.query(Order).filter(Order.distributor_id == current_user.id).all()
+    else:
+        orders = (
+            db.query(Order)
+            .join(Product)
+            .filter(Product.farmer_id == current_user.id)
+            .all()
+        )
+
+    results = []
+    for o in orders:
+        results.append(OrderResponse(
+            id=o.id,
+            product_name=o.product.name,
+            quantity=o.quantity,
+            total_price=o.total_price,
+            status=o.status
+        ))
     
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500,detail=str(e))
+    return results

@@ -17,8 +17,8 @@ def get_password_hash(password):
 
     return pwd_context.hash(password)
 
-def create_access_token(data: dict,expires_delta: Optional[timedelta]=None):
-    to_encode=data.copy()
+def create_access_token(subject: str,user_id: int,expires_delta: Optional[timedelta]=None):
+    to_encode={"sub": subject, "id": user_id}
 
     if expires_delta:
         expire=datetime.utcnow() + expires_delta

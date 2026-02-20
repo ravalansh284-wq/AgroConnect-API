@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 class OrderCreate(BaseModel):
     product_id: int
@@ -7,7 +8,7 @@ class OrderCreate(BaseModel):
 
 class OrderResponse(BaseModel):
     id: int
-    product_id: int
+    product_name: str
     quantity: int
     total_price: float
     status: str
