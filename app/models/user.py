@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.audit import AuditMixin
-from app.models.role import user_roles # Import the link table
+from app.models.role import user_roles
 
 class User(Base, AuditMixin):
     __tablename__ = "users"

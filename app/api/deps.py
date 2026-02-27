@@ -4,10 +4,7 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import SECRET_KEY, ALGORITHM
-from app.models.user import User  # <--- Note: We import from the NEW user.py file
-
-# This tells FastAPI: "The token is in the Authorization header"
-# It also points to the URL where users get the token (/login)
+from app.models.user import User
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -25,7 +22,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     )
     
     try:
-        # Decode the Token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
@@ -33,7 +29,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     except JWTError:
         raise credentials_exception
         
-    # Find the User in the DB
     user = db.query(User).filter(User.username == username).first()
     if user is None:
         raise credentials_exception

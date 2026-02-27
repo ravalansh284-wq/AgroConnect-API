@@ -12,5 +12,4 @@ class Product(Base,AuditMixin):
     quantity = Column(Integer)
     farmer_id = Column(Integer, ForeignKey("users.id"))
 
-    # Relationships
     farmer = relationship("User", back_populates="products", foreign_keys=[farmer_id])

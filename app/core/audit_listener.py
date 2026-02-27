@@ -2,7 +2,6 @@ from sqlalchemy import event
 from app.models.audit import AuditMixin
 from app.core.context import get_current_user_id
 
-# This function runs automatically whenever you save data
 def register_audit_listeners():
     print("✅ Registering Audit Listeners...")
 
